@@ -11,7 +11,7 @@ metadata:
 
 # Set up Claude Code with a brain vault
 
-The pattern: an Obsidian vault at `~/brain` with a structured layout, a `CLAUDE.md` operating manual at the root, a `/brain` skill that saves notes during any session, lifecycle hooks that prompt for saves on session end, and an auto-committing git repo so the vault syncs across machines. The full human-readable recipe is at [sethshoultes.com/recipes/claude-code-brain-vault.html](https://sethshoultes.com/recipes/claude-code-brain-vault.html). The reference vault is [github.com/sethshoultes/brain](https://github.com/sethshoultes/brain).
+The pattern: an Obsidian vault at `~/brain` with a structured layout, a `CLAUDE.md` operating manual at the root, a `/brain` skill that saves notes during any session, lifecycle hooks that prompt for saves on session end, and an auto-committing git repo so the vault syncs across machines. The full human-readable recipe is at [sethshoultes.com/recipes/claude-code-brain-vault.html](https://sethshoultes.com/recipes/claude-code-brain-vault.html). The reference vault is [github.com/sethshoultes/building-with-ai-brain](https://github.com/sethshoultes/building-with-ai-brain).
 
 ## Step 1 — Discover what the user has
 
@@ -47,11 +47,11 @@ Create `~/brain/CLAUDE.md` with the full content shown in the recipe. The key se
 - Wikilink rule (a note without links is a bug)
 - What NOT to put in the vault (secrets, code that belongs in a project, prose drafts)
 
-The full template is at [`references/CLAUDE.md.template`](references/CLAUDE.md.template). Copy it to `~/brain/CLAUDE.md` and customize the persona-specific bits.
+The full template is at [`building-with-ai-brain/CLAUDE.md`](https://github.com/sethshoultes/building-with-ai-brain/blob/main/CLAUDE.md). Copy it to `~/brain/CLAUDE.md` and customize the persona-specific bits.
 
 ## Step 4 — Add the templates
 
-Three template files in `~/brain/templates/` — `learning.md`, `project.md`, `repo.md`. Each has YAML frontmatter and section headers. Copy from [`references/templates/`](references/templates/) in this skill.
+Three template files in `~/brain/templates/` — `learning.md`, `project.md`, `repo.md`. Each has YAML frontmatter and section headers. Copy from [`building-with-ai-brain/templates/`](https://github.com/sethshoultes/building-with-ai-brain/tree/main/templates) in the public skeleton repo.
 
 The templates are what Obsidian's Templates plugin and the `/brain` skill both read when creating a new note.
 
@@ -85,12 +85,15 @@ Default to `--private`. Most people don't want their notebook public on day one.
 
 ```bash
 mkdir -p ~/.claude/skills/brain
-cp <skill_dir>/references/brain-skill.md ~/.claude/skills/brain/SKILL.md
+# Drop a SKILL.md at ~/.claude/skills/brain/SKILL.md whose description triggers on
+# phrases like "save this as a learning" / "save to brain" / "add to vault" — see
+# the operating manual at building-with-ai-brain/CLAUDE.md for the slash-command
+# contract this skill enforces.
 ```
 
 The skill's `description` field uses trigger phrases like "save this as a learning" so it fires automatically. After install, the user runs `/reload-plugins` (or restarts Claude Code) and the skill is live.
 
-The full SKILL.md content is at [`references/brain-skill.md`](references/brain-skill.md).
+The full operating contract the `/brain` skill must enforce is documented in [`building-with-ai-brain/CLAUDE.md`](https://github.com/sethshoultes/building-with-ai-brain/blob/main/CLAUDE.md).
 
 ## Step 8 — Wire the hooks
 
@@ -137,7 +140,7 @@ The optional SessionStart script (`~/.claude/hooks/check-messages.sh`) is up to 
 ollama pull nomic-embed-text
 ```
 
-Then drop in a small Python script at `~/brain/scripts/brain-search.py` that builds and queries an embedding index. The reference implementation is at [github.com/sethshoultes/brain/blob/main/scripts/brain-search.py](https://github.com/sethshoultes/brain/blob/main/scripts/brain-search.py); the minimum useful version is ~80 lines and stores SQLite next to the vault.
+Then drop in a small Python script at `~/brain/scripts/brain-search.py` that builds and queries an embedding index. The reference implementation is at [github.com/sethshoultes/building-with-ai-brain/blob/main/scripts/brain-search.py](https://github.com/sethshoultes/building-with-ai-brain/blob/main/scripts/brain-search.py); the minimum useful version is ~80 lines and stores SQLite next to the vault.
 
 Add a shell alias in `~/.zshrc`:
 
@@ -178,11 +181,10 @@ Then `source ~/.zshrc`. Use it: `brain index` (build), `brain "<query>"` (search
 
 ## References
 
-- [`references/CLAUDE.md.template`](references/CLAUDE.md.template) — the operating manual to drop at `~/brain/CLAUDE.md`
-- [`references/templates/`](references/templates/) — `learning.md`, `project.md`, `repo.md` for `~/brain/templates/`
-- [`references/brain-skill.md`](references/brain-skill.md) — the `/brain` skill SKILL.md
-- [`references/hooks-config.json`](references/hooks-config.json) — the SessionStart and Stop hook fragment
-- [`references/brain-search-minimal.py`](references/brain-search-minimal.py) — minimal embedding-index script
+- [`CLAUDE.md`](https://github.com/sethshoultes/building-with-ai-brain/blob/main/CLAUDE.md) — the operating manual to drop at `~/brain/CLAUDE.md`
+- [`templates/`](https://github.com/sethshoultes/building-with-ai-brain/tree/main/templates) — `learning.md`, `project.md`, `repo.md` for `~/brain/templates/`
+- [`scripts/brain-search.py`](https://github.com/sethshoultes/building-with-ai-brain/blob/main/scripts/brain-search.py) — embedding-index script
+- Hooks config: the SessionStart and Stop fragment is shown inline in Step 8 above — paste-ready
 - Reference recipe: [Set up Claude Code with a Brain Vault](https://sethshoultes.com/recipes/claude-code-brain-vault.html)
-- Reference repo: [github.com/sethshoultes/brain](https://github.com/sethshoultes/brain)
+- Reference repo: [github.com/sethshoultes/building-with-ai-brain](https://github.com/sethshoultes/building-with-ai-brain)
 - Reference essay: [The Bible Reads First](https://sethshoultes.com/blog/the-bible-reads-first.html)

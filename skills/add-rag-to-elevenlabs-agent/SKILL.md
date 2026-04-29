@@ -139,4 +139,4 @@ Then test the agent. Ask a question whose answer is in the corpus. The agent sho
 - [`references/page-build-workflow.yml`](references/page-build-workflow.yml) — GitHub Action with the `on: page_build` trigger
 - [`references/system-prompt-patterns.md`](references/system-prompt-patterns.md) — examples of system prompts that direct retrieval well
 - Reference essay: [The Bible Reads First](https://sethshoultes.com/blog/the-bible-reads-first.html)
-- Brain learning: [`github-pages-rebuild-race-breaks-post-publish-webhooks`](https://github.com/sethshoultes/brain/blob/main/learnings/github-pages-rebuild-race-breaks-post-publish-webhooks.md)
+- Brain learning: [`github-pages-rebuild-race-breaks-post-publish-webhooks`](https://github.com/sethshoultes/building-with-ai-brain/blob/main/learnings/github-pages-rebuild-race-breaks-post-publish-webhooks.md)

@@ -25,7 +25,7 @@ Tool calling is three-way. **All three must align** or the tool looks-almost-rig
 
 Break any one and the other two keep working in a way that looks plausible. Symptom of a missing piece (1): the agent emits literal JSON in its spoken response (e.g., `{"tool":"show_blog_post","slug":"the-toll-dropped"}` read aloud). Symptom of a missing piece (3): the agent calls the tool, the WebSocket emits the event, no card appears.
 
-See *[ElevenLabs Custom LLM Tool Passthrough](https://github.com/sethshoultes/brain/blob/main/learnings/ElevenLabs%20Custom%20LLM%20Tool%20Passthrough.md)* (private) for the longer treatment.
+See *[ElevenLabs Custom LLM Tool Passthrough](https://github.com/sethshoultes/building-with-ai-brain/blob/main/learnings/ElevenLabs%20Custom%20LLM%20Tool%20Passthrough.md)* (private) for the longer treatment.
 
 ## Step 1 — Lock the inputs
 
