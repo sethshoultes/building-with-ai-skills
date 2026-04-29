@@ -24,9 +24,17 @@ session.on(AgentEventsEnum.ELEVENLABS_AGENT_EVENT, (event) => {
 
   if (evType !== "client_tool_call") return;
 
-  switch (data.tool_name) {
+  // CRITICAL: ElevenLabs wraps tool calls one level deeper than the obvious
+  // shape — `data.client_tool_call.tool_name`, NOT `data.tool_name`. Some SDK
+  // paths may flatten, so read defensively. A silent mismatch here means the
+  // tool fires (per the conversation transcript) but the page UI never reacts.
+  const tool = data.client_tool_call || data;
+  const toolName = tool.tool_name || data.tool_name;
+  const params = tool.parameters || data.parameters || {};
+
+  switch (toolName) {
     case "show_blog_post": {
-      const slug = data.parameters?.slug;
+      const slug = params.slug;
       if (slug) renderCard(slug); // your UI renderer
       break;
     }
@@ -35,8 +43,8 @@ session.on(AgentEventsEnum.ELEVENLABS_AGENT_EVENT, (event) => {
       break;
     }
     default:
-      // Unknown tool — log and ignore.
-      console.warn("Unhandled client tool:", data.tool_name);
+      // Unknown tool — log full event so future you can diagnose without grepping.
+      console.warn("Unhandled client tool:", toolName, "raw:", event);
   }
 });
 
