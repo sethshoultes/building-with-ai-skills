@@ -1,0 +1,47 @@
+name: Sync new posts into ElevenLabs RAG
+
+# Fires on `page_build` (after GitHub Pages finishes rebuilding) so URL
+# ingestion never races a stale 404. Firing on `push` instead causes the
+# webhook to run ~5-10s after the commit lands; Pages takes 30-90s to rebuild;
+# ElevenLabs's URL ingestor returns ReadabilityError when the URL 404s or
+# returns the previous build's HTML.
+#
+# See: https://github.com/sethshoultes/building-with-ai-brain/blob/main/learnings/github-pages-rebuild-race-breaks-post-publish-webhooks.md
+
+on:
+  page_build:
+  # Also fire on script-only pushes — script changes don't need Pages to rebuild.
+  push:
+    branches: [main]
+    paths:
+      - "scripts/add-post-to-rag.py"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Add new URLs to the agent's knowledge base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Sync RAG
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_AGENT_ID: ${{ secrets.ELEVENLABS_AGENT_ID }}
+        run: |
+          if [ -z "$ELEVENLABS_API_KEY" ]; then
+            echo "::error::ELEVENLABS_API_KEY repository secret is not set."
+            echo "Add it at: Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+          if [ -z "$ELEVENLABS_AGENT_ID" ]; then
+            echo "::error::ELEVENLABS_AGENT_ID repository secret is not set."
+            exit 1
+          fi
+          python3 scripts/add-post-to-rag.py

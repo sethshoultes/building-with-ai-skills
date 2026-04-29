@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talk to the avatar</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --accent: #0f766e;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+      --radius: 12px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      color: var(--text); background: var(--bg); line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    main { max-width: 880px; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+    h1 { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 1rem; }
+    .lede { font-size: 1.05rem; color: var(--text-secondary); max-width: 580px; margin-bottom: 2.5rem; }
+
+    /* The stage: 16:9 on desktop. On narrow viewports the aspect-ratio is
+       removed (see media query below) so the placeholder content fits without
+       being clipped — the <video>/<iframe> still hold 16:9 themselves. */
+    .stage {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; aspect-ratio: 16 / 9;
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    .stage video, .stage iframe {
+      width: 100%; height: auto; aspect-ratio: 16 / 9;
+      object-fit: cover; background: #000; border: 0;
+    }
+
+    .placeholder { text-align: center; padding: 2rem; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+    .placeholder img { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--surface); box-shadow: 0 6px 24px rgba(0,0,0,0.08); margin-bottom: 0.75rem; }
+    .placeholder h2 { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+    .placeholder p { font-size: 0.92rem; max-width: 420px; }
+
+    .controls { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+    button {
+      font-family: inherit; font-size: 0.92rem; font-weight: 600;
+      padding: 0.7rem 1.4rem; border-radius: 100px; border: 1px solid transparent;
+      cursor: pointer; transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--text); color: #fff; }
+    .btn-primary:hover:not([disabled]) { background: var(--accent); }
+    .btn-danger { background: var(--surface); color: var(--danger); border-color: var(--border); }
+    .btn-danger:hover:not([disabled]) { border-color: var(--danger); }
+
+    .status { margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); min-height: 1.4em; }
+    .status.error { color: var(--danger); }
+
+    @media (max-width: 720px) {
+      main { padding: 2.5rem 1.25rem 4rem; }
+      h1 { font-size: 2rem; }
+      .stage { aspect-ratio: auto; min-height: 360px; }
+      .placeholder { padding: 1.5rem 1rem; }
+      .placeholder img { width: 108px; height: 108px; }
+      button { padding: 0.65rem 1.15rem; font-size: 0.88rem; }
+    }
+  </style>
+</head>
+<body>
+
+<main>
+  <h1>Talk to the avatar.</h1>
+  <p class="lede">A live, voice-driven conversation with the avatar. Click start, allow microphone access, and ask anything.</p>
+
+  <div id="stage" class="stage">
+    <div class="placeholder">
+      <!-- Replace with a portrait of the persona the avatar represents. -->
+      <img src="portrait.jpg" alt="Persona portrait" />
+      <h2>Click "Start the call" to begin</h2>
+      <p>The session opens a microphone connection and streams an avatar back. Sessions auto-close after a few minutes of silence.</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="start-btn" class="btn-primary" type="button">Start the call</button>
+    <button id="stop-btn" class="btn-danger" type="button" disabled>End call</button>
+  </div>
+
+  <p id="status" class="status"></p>
+</main>
+
+<!--
+  config.js sets window.AVATAR_WORKER_URL to the deployed Cloudflare Worker.
+  Keep it in a separate file so the page can be checked into git without
+  baking the worker URL in.
+-->
+<script src="config.js"></script>
+<script type="module">
+  const stage = document.getElementById("stage");
+  const startBtn = document.getElementById("start-btn");
+  const stopBtn = document.getElementById("stop-btn");
+  const status = document.getElementById("status");
+
+  let session = null;
+
+  function setStatus(text, isError = false) {
+    status.textContent = text;
+    status.classList.toggle("error", isError);
+  }
+
+  function clearStage() {
+    while (stage.firstChild) stage.removeChild(stage.firstChild);
+  }
+
+  function renderVideo() {
+    clearStage();
+    const v = document.createElement("video");
+    v.autoplay = true;
+    v.playsInline = true;
+    stage.append(v);
+    return v;
+  }
+
+  async function startSession() {
+    if (!window.AVATAR_WORKER_URL) {
+      setStatus("Worker URL not configured (window.AVATAR_WORKER_URL).", true);
+      return;
+    }
+
+    startBtn.disabled = true;
+    setStatus("Minting session token…");
+
+    let sessionToken;
+    try {
+      const res = await fetch(window.AVATAR_WORKER_URL, { credentials: "omit" });
+      const payload = await res.json();
+      if (!res.ok || !payload.sessionToken) {
+        throw new Error(payload?.error?.message || `HTTP ${res.status}`);
+      }
+      sessionToken = payload.sessionToken;
+    } catch (err) {
+      setStatus(`Could not get a session token: ${err.message}`, true);
+      startBtn.disabled = false;
+      return;
+    }
+
+    setStatus("Connecting to LiveAvatar…");
+
+    let LiveAvatarSession;
+    try {
+      const sdk = await import("https://esm.sh/@heygen/liveavatar-web-sdk@0.0.17");
+      LiveAvatarSession = sdk.LiveAvatarSession;
+    } catch (err) {
+      setStatus(`Could not load the LiveAvatar SDK: ${err.message}`, true);
+      startBtn.disabled = false;
+      return;
+    }
+
+    try {
+      session = new LiveAvatarSession(sessionToken, { voiceChat: true });
+      const video = renderVideo();
+      await session.start();
+      session.attach(video);
+      await session.voiceChat.start();
+      setStatus("Connected. Speak whenever you're ready.");
+      stopBtn.disabled = false;
+    } catch (err) {
+      setStatus(`Session failed to start: ${err.message}`, true);
+      startBtn.disabled = false;
+      session = null;
+    }
+  }
+
+  async function stopSession() {
+    stopBtn.disabled = true;
+    setStatus("Ending call…");
+    try { await session?.stop(); } catch {}
+    session = null;
+    clearStage();
+    const wrap = document.createElement("div");
+    wrap.className = "placeholder";
+    const img = document.createElement("img");
+    img.src = "portrait.jpg";
+    const h = document.createElement("h2");
+    h.textContent = "Call ended";
+    const p = document.createElement("p");
+    p.textContent = "Click Start the call to open a new one.";
+    wrap.append(img, h, p);
+    stage.append(wrap);
+    startBtn.disabled = false;
+    setStatus("");
+  }
+
+  startBtn.addEventListener("click", startSession);
+  stopBtn.addEventListener("click", stopSession);
+
+  window.addEventListener("beforeunload", () => {
+    session?.stop?.().catch(() => {});
+  });
+</script>
+
+</body>
+</html>
